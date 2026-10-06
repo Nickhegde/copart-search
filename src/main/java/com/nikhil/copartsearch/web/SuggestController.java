@@ -20,6 +20,10 @@ public class SuggestController {
     @GetMapping("/suggest")
     public SuggestResponse suggest(@RequestParam(defaultValue = "") String q,
                                    @RequestParam(defaultValue = "10") int limit) {
+
+        RequestValidation.requireMaxLength("q", q, RequestValidation.MAX_QUERY_LENGTH);
+        RequestValidation.requireBetween("limit", limit, 1, RequestValidation.MAX_SUGGEST_LIMIT);
+
         return new SuggestResponse(suggestService.suggest(q, limit));
     }
 }

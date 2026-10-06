@@ -290,6 +290,11 @@ async function runSearch(historyMode) {
             showError('Too many requests. Please wait a moment and try again.');
             return;
         }
+        if (response.status === 400) {
+            const body = await response.json();
+            showError(body.message || 'Invalid search.');
+            return;
+        }
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }

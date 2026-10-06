@@ -21,6 +21,10 @@ public class SearchController {
     public SearchResponse search(@RequestParam(defaultValue = "") String q,
                                  @RequestParam(defaultValue = "1") int page,
                                  @RequestParam(defaultValue = "20") int size) {
+        RequestValidation.requireMaxLength("q", q, RequestValidation.MAX_QUERY_LENGTH);
+        RequestValidation.requireAtLeast("page", page, 1);
+        RequestValidation.requireBetween("size", size, 1, RequestValidation.MAX_PAGE_SIZE);
+
         return searchService.search(q, page, size);
     }
 }

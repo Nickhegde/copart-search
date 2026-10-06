@@ -3,7 +3,7 @@
 A small vehicle-auction search service in the style of Copart's inventory search: type to get
 typeahead suggestions, run a search, and page through matching lots.
 
-**Live demo:** _<add Railway URL>_
+**Live demo:** https://copart-search-production.up.railway.app/
 
 - Backend: Java 21, Spring Boot 4 (Spring Web MVC), in-memory indexes, no database
 - Frontend: a single static page in plain HTML, CSS and JavaScript (no framework)

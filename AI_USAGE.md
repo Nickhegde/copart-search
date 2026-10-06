@@ -39,7 +39,6 @@ Claude ran it twice and confirmed byte-identical output, 1000 unique 8-digit lot
 - Ram's numeric model names ("1500") match other makes' models;
 - the script must be run from the project root.
 
-**Follow-up:** _[Fill in: anything you changed in the catalog or generator.]_
 
 ### 3.2 LotRepository and Normalizer
 

@@ -23,7 +23,9 @@ typeahead suggestions, run a search, and page through matching lots.
 - **Shareable URLs.** The query, page and page size are stored in the URL (`?q=honda&page=2`),
   so refresh, back/forward and shared links all work.
 - **Keyboard support.** ↑/↓ moves through suggestions, Enter selects, Esc closes.
-- **Rate limiting.** A per-client token bucket on the API returns `429` when exceeded.
+- **Input validation.** Invalid parameters (`page=0`, `size=0`, non-numeric values, queries over
+  100 characters) return a `400` with a JSON error body. The search box also enforces the
+  100-character limit.
 
 ---
 
@@ -55,11 +57,11 @@ java scripts/DataGenerator.java
 
 ### `GET /api/search`
 
-| Param  | Default | Notes                                   |
-|--------|---------|-----------------------------------------|
-| `q`    | `""`    | Blank returns all lots, newest first    |
-| `page` | `1`     | 1-based                                 |
-| `size` | `20`    | Max 100                                 |
+| Param  | Default | Rules                                         |
+|--------|---------|-----------------------------------------------|
+| `q`    | `""`    | Max 100 characters; blank returns all lots, newest first |
+| `page` | `1`     | 1-based, must be ≥ 1                          |
+| `size` | `20`    | 1–100                                         |
 
 ```json
 {
@@ -79,13 +81,21 @@ A page past the last one returns empty `items` with correct totals, not an error
 
 ### `GET /api/suggest`
 
-| Param   | Default | Notes                   |
-|---------|---------|-------------------------|
-| `q`     | `""`    | Blank returns no suggestions |
-| `limit` | `10`    | Max 20                  |
+| Param   | Default | Rules                                          |
+|---------|---------|------------------------------------------------|
+| `q`     | `""`    | Max 100 characters; blank returns no suggestions |
+| `limit` | `10`    | 1–20                                           |
 
 ```json
 { "suggestions": ["Honda Pilot", "Nissan Pathfinder", "Pilot Elite"] }
+```
+
+### Errors
+
+Invalid input returns `400`; unexpected failures return `500` with no stack trace.
+
+```json
+{ "status": 400, "error": "Bad Request", "message": "page must be >= 1" }
 ```
 
 ---
@@ -102,29 +112,27 @@ cars.json ──(startup)──▶ LotRepository (immutable List<Lot>)
                 │                           │
                 ▼                           ▼
        GET /api/search              GET /api/suggest
-                ▲                           ▲
-                └──── RateLimitFilter ──────┘
+       (validated, JSON errors via ApiExceptionHandler)
 
 Static page (index.html + app.js) is served by the same Spring Boot app.
 ```
 
-| Package     | Responsibility                                               |
-|-------------|--------------------------------------------------------------|
-| `model`     | `Lot` record                                                 |
-| `data`      | `LotRepository`: loads `cars.json` once at startup           |
-| `search`    | `Normalizer`, service interfaces and in-memory implementations |
-| `web`       | Controllers and response DTOs                                |
-| `ratelimit` | Token-bucket servlet filter                                  |
+| Package  | Responsibility                                                  |
+|----------|-----------------------------------------------------------------|
+| `model`  | `Lot` record                                                    |
+| `data`   | `LotRepository`: loads `cars.json` once at startup              |
+| `search` | `Normalizer`, service interfaces and in-memory implementations  |
+| `web`    | Controllers, response DTOs, input validation and error handling |
 
 ---
 
 ## Design decisions
 
 **In-memory indexes instead of a database or search engine.** The dataset is small (1,000 lots)
-and read-only, so both indexes are built once at startup. Every request then reads immutable
-data, which needs no locking. `SearchService` and `SuggestService` are interfaces, so an
-Elasticsearch-backed implementation could replace the in-memory one without touching the
-controllers.
+and read-only, so both indexes are built once at startup and never modified afterwards. Request
+threads only read them, so no locking is needed. `SearchService` and `SuggestService` are
+interfaces, so an Elasticsearch-backed implementation could replace the in-memory one without
+touching the controllers.
 
 **Shared normalization.** Indexing and querying both go through `Normalizer`: lowercase
 (`Locale.ROOT`), fold accents, split on Unicode whitespace, and strip non-alphanumerics.
@@ -147,21 +155,24 @@ sorted. A query walks the shortest list and stops after `limit` matches, with no
 request. That matters because this endpoint is called on every keystroke.
 
 **One suggest request per keystroke, no debounce.** This matches Copart's observed behavior
-(checked in DevTools). Each response is small and cheap to compute. The client cancels the
-previous request with `AbortController`, so a slow stale response can never overwrite a newer
-one. Server load is controlled by rate limiting, not by delaying the user.
+(checked in DevTools). Each request is a cheap in-memory lookup, so unthrottled requests are
+acceptable at this scope. The client cancels the previous request with `AbortController`, so a
+slow stale response can never overwrite a newer one. In production, a per-client rate limit
+would protect the backend.
 
-**Rate limiting.** A per-client token bucket applies to `/api/**`. Suggest allows more traffic
-than search because it fires on every keystroke. The client is identified by the first IP in
-`X-Forwarded-For` when present, because on Railway `getRemoteAddr()` is the proxy, which would
-put every user in one bucket. In production this header should only be trusted from a known
-proxy, since clients can spoof it.
+**Validation at the web layer.** Controllers check `q`, `page`, `size` and `limit` before calling
+the services, so the services can assume valid input. Failures throw a dedicated
+`BadRequestException` rather than `IllegalArgumentException`, so a genuine bug elsewhere still
+surfaces as a `500` instead of a misleading `400`. The exception handler is scoped to the API
+controllers, so Spring's normal `404`/`405` handling for static files is unaffected. The
+frontend mirrors the limits (`maxlength` on the input, page/size corrected from the URL) for a
+forgiving UI, but the server never relies on it, because anyone can call the API directly.
 
 **Frontend without a framework.** The UI is one page with a few interactions, so plain DOM APIs
 are enough. Rows are built from a `<template>` and filled with `textContent` (never `innerHTML`),
 so data from the API cannot inject markup.
 
-**Fail fast on bad data.** If `cars.json` is missing, malformed or empty, the app refuses to start
+**Fail fast on bad data.** If `cars.json` is missing or malformed, the app refuses to start
 instead of serving empty results.
 
 ---
@@ -178,6 +189,8 @@ instead of serving empty results.
 
 - **No odometer, damage, current bid or sale date.** They don't take part in search or ranking,
   and the assignment centers on search.
+- **No rate limiting.** Suggest fires on every keystroke, so production would need a per-client
+  token bucket (at the API gateway, or backed by Redis) to protect the backend.
 - **No filters or sorting controls.** Range filters (year, bid) would be filter queries on top of
   the same search; that is a natural next step.
 - **No auth, bidding, watchlists or persistence.**
@@ -186,8 +199,9 @@ instead of serving empty results.
 ## Known limitations
 
 - Indexes live in each app instance's memory: fine for 1,000 lots, not for millions.
-- The rate limiter is per instance. With several instances behind a load balancer, each one
-  keeps its own counts.
+- `c300` doesn't match "C 300": hyphens join words during normalization while spaces split them.
+  This affects a few Mercedes-Benz trims.
+- "Model Trim" suggestions drop the make, so Ram's numeric models show as "1500 Laramie".
 - An aborted request still runs to completion on the server; `AbortController` only cancels it
   in the browser.
 
@@ -202,8 +216,8 @@ instead of serving empty results.
   results don't shift while lots are being added and sold.
 - **Caching:** suggest has a small, hot key space (short prefixes). Serve it as a cacheable
   `GET` from a CDN or Redis with a short TTL.
-- **Rate limiting:** move counters to Redis (or the API gateway) so limits apply across
-  instances.
+- **Rate limiting:** add a per-client token bucket at the API gateway or in Redis so limits
+  apply across instances.
 - **Stateless app tier:** with the indexes external, app instances can scale horizontally.
 
 ---

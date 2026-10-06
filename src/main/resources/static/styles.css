@@ -1,0 +1,278 @@
+
+:root {
+    --brand: #1a3b8f;
+    --brand-dark: #12296a;
+    --accent: #f5b72a;
+    --accent-dark: #e0a315;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --surface: #ffffff;
+    --background: #f4f6fa;
+    --highlight: #e8eefc;
+    --error: #b91c1c;
+    --radius: 6px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--background);
+}
+
+button {
+    font: inherit;
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: default;
+}
+
+
+.site-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 24px;
+    background: var(--brand);
+}
+
+.logo {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.search-form {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    max-width: 800px;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+}
+
+#search-input {
+    width: 100%;
+    padding: 10px 14px;
+    font: inherit;
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+#search-button {
+    padding: 10px 18px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+}
+
+#search-button:hover {
+    background: var(--accent-dark);
+}
+
+.suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.suggestion {
+    padding: 8px 14px;
+    cursor: pointer;
+}
+
+.suggestion:hover,
+.suggestion.active {
+    background: var(--highlight);
+}
+
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.results-summary {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.page-size {
+    color: var(--muted);
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.results-table th {
+    padding: 12px;
+    text-align: left;
+    color: #fff;
+    background: #1f2937;
+}
+
+.results-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.results-table tbody tr:hover {
+    background: var(--highlight);
+}
+
+.lot-image {
+    display: block;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--border);
+}
+
+.lot-number {
+    font-weight: 600;
+    color: var(--brand);
+}
+
+.lot-vehicle {
+    font-weight: 600;
+}
+
+
+body.loading .results-table {
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.empty-state,
+.error-state {
+    padding: 32px;
+    text-align: center;
+    color: var(--muted);
+    background: var(--surface);
+}
+
+.error-state {
+    color: var(--error);
+}
+
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-bottom {
+    margin-top: 20px;
+}
+
+.pagination[hidden] {
+    display: none;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pagination button {
+    min-width: 36px;
+    padding: 6px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.pagination button:hover:not(:disabled) {
+    border-color: var(--brand);
+}
+
+.pagination button[aria-current="page"] {
+    color: #fff;
+    background: var(--brand);
+    border-color: var(--brand);
+}
+
+.pagination button:disabled:not([aria-current]) {
+    opacity: 0.4;
+}
+
+.page-gap {
+    padding: 6px 4px;
+    color: var(--muted);
+}
+
+
+@media (max-width: 700px) {
+    .site-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .search-form {
+        max-width: none;
+    }
+
+    .content {
+        padding: 16px;
+    }
+
+    .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .results-table {
+        display: block;
+        overflow-x: auto;
+    }
+}

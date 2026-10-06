@@ -2,9 +2,91 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Copart Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
 </head>
 <body>
-<h1>Hello Springboot</h1>
+
+<header class="site-header">
+    <h1 class="logo">Car Search</h1>
+
+    <!-- Search bar with typeahead dropdown -->
+    <form id="search-form" class="search-form" role="search" autocomplete="off">
+        <div class="search-box">
+            <input
+                    id="search-input"
+                    type="search"
+                    name="q"
+                    placeholder="Search by make, model, year or lot #"
+                    aria-label="Search inventory"
+                    aria-autocomplete="list"
+                    aria-controls="suggestions"
+                    aria-expanded="false">
+            <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+        </div>
+        <button id="search-button" type="submit">Search inventory</button>
+    </form>
+</header>
+
+<main class="content">
+    <div class="results-header">
+        <p id="results-summary" class="results-summary" aria-live="polite"></p>
+
+        <nav class="pagination" aria-label="Search results pages, top">
+            <button class="prev-page" type="button" data-action="prev">Prev</button>
+            <ol class="page-numbers"></ol>
+            <button class="next-page" type="button" data-action="next">Next</button>
+        </nav>
+
+        <label class="page-size">
+            Show
+            <select id="page-size">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            per page
+        </label>
+    </div>
+
+    <table class="results-table">
+        <thead>
+        <tr>
+            <th scope="col">Image</th>
+            <th scope="col">Lot #</th>
+            <th scope="col">Vehicle</th>
+            <th scope="col">Title</th>
+            <th scope="col">Location</th>
+        </tr>
+        </thead>
+        <tbody id="results-body">
+        </tbody>
+    </table>
+
+    <p id="empty-state" class="empty-state" hidden>No vehicles match your search.</p>
+    <p id="error-state" class="error-state" hidden>Something went wrong. Please try again.</p>
+
+    <nav class="pagination pagination-bottom" aria-label="Search results pages, bottom">
+        <button class="prev-page" type="button" data-action="prev">Prev</button>
+        <ol class="page-numbers"></ol>
+        <button class="next-page" type="button" data-action="next">Next</button>
+    </nav>
+
+</main>
+
+<!-- One results row; app.js clones this for each lot -->
+<template id="row-template">
+    <tr>
+        <td><img class="lot-image" alt="" width="120" height="90" loading="lazy"></td>
+        <td class="lot-number"></td>
+        <td class="lot-vehicle"></td>
+        <td class="lot-title"></td>
+        <td class="lot-location"></td>
+    </tr>
+</template>
+
 </body>
 </html>
